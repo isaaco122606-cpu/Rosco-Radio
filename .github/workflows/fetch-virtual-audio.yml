@@ -11,7 +11,7 @@ jobs:
     container:
       image: debian:13
     steps:
-      - name: Download PulseAudio and PortAudio packages
+      - name: Download virtual audio packages
         shell: bash
         run: |
           set -eux
@@ -20,7 +20,8 @@ jobs:
           mkdir -p /work/debs /work/wheels
           cd /work/debs
           apt-get -o Dir::Cache::archives=/work/debs --download-only install -y \
-            pulseaudio pulseaudio-utils libpulse0 libpulse-mainloop-glib0 libportaudio2
+            pulseaudio pulseaudio-utils libpulse0 libpulse-mainloop-glib0 \
+            libportaudio2 jackd2
           rm -f lock || true
           rm -rf partial || true
           python3 -m pip download --only-binary=:all: --dest /work/wheels sounddevice
