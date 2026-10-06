@@ -1,0 +1,16 @@
+Rosco Radio v0.1.3 Beta — Embedded Satellite Engine
+
+This Rosco Radio Beta bundles SatDump's Windows x64 processing runtime as the backend for RR's native Satellite workspace in packaged builds.
+
+Upstream project:
+https://github.com/SatDump/SatDump
+
+License:
+GNU General Public License v3.0 (GPL-3.0)
+
+Rosco Radio's PySide6 Satellite interface is an RR interface; the bundled SatDump engine, plugins, pipeline definitions, and related components remain third-party SatDump software under their applicable upstream licenses.
+
+Corresponding source:
+Use the upstream SatDump source for the exact SatDump build/version distributed with this RR release. For public distribution, corresponding-source and notice obligations under GPL-3.0 must be satisfied.
+
+The standalone SatDump GUI is not used by Rosco Radio. RR invokes the processing backend internally and presents results through the Rosco Radio interface.
