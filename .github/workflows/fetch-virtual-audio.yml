@@ -21,8 +21,9 @@ jobs:
           cd /work/debs
           apt-get -o Dir::Cache::archives=/work/debs --download-only install -y \
             pulseaudio pulseaudio-utils libpulse0 libpulse-mainloop-glib0 libportaudio2
-          rm -f lock partial || true
-          python3 -m pip download --break-system-packages --only-binary=:all: --dest /work/wheels sounddevice
+          rm -f lock || true
+          rm -rf partial || true
+          python3 -m pip download --only-binary=:all: --dest /work/wheels sounddevice
           ls -lah /work/debs /work/wheels
 
       - name: Upload bundle
