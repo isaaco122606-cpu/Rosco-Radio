@@ -11,11 +11,28 @@ Rosco Radio (RR) is a Windows-focused radio workspace that brings WebSDR recepti
 
 The Stable build is the recommended version for normal use. The Beta build contains newer features that are still being tested.
 
+## Online installer
+
+Rosco Radio includes a small **NexusUpdater-powered online installer** under [`installer/`](installer/).
+
+The installer does not hard-code a Rosco Radio package URL. Instead, it:
+
+1. contacts `https://nexusupdater.duckdns.org`,
+2. asks for the current Stable or Beta manifest,
+3. downloads the package published by NexusUpdater,
+4. verifies the package SHA-256,
+5. installs RR for the current Windows user,
+6. keeps the verified ZIP and a backup of an existing install,
+7. creates a desktop shortcut and launches Rosco Radio.
+
+Run `RoscoRadio-Online-Installer.bat` normally for **Stable**. Pass `beta` as its first argument to request the **Beta** channel.
+
 ## v0.1.2 Stable
 
 Highlights include:
 
 - Redesigned WebSDR workspace: WebSDR page on the left, receiver data on the right.
+- Corrected WebSDR frequency/action control sizing.
 - CW workspace: Automatic Morse TX on the left, decoded CW on the right.
 - SSTV workspace: decoded image on the left, receive engine on the right.
 - Local Radio service selection for FRS, Ham, GMRS, and CB handling.
@@ -37,6 +54,8 @@ On a user's first launch, RR opens First Time Setup. Setup state is saved per Wi
 ## NexusUpdater
 
 Rosco Radio uses **NexusUpdater** to check and install application updates. Matching versions report **Up to date** instead of reinstalling themselves. Update downloads, staging, and backups are stored below the RR storage directory selected during First Time Setup.
+
+The GitHub Actions release workflow also mirrors NexusUpdater packages into GitHub Releases after verifying their hashes, so NexusUpdater remains the source of truth for published builds.
 
 ## Running from source
 
