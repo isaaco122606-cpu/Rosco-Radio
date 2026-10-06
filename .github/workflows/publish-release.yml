@@ -1,0 +1,128 @@
+name: Publish Rosco Radio release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel to mirror from NexusUpdater
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - beta
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read NexusUpdater manifest and download package
+        id: nexus
+        shell: bash
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          SERVER: https://nexusupdater.duckdns.org
+          APP_ID: rosco-radio
+        run: |
+          set -euo pipefail
+          manifest="$(curl --fail --silent --show-error --location \
+            -H 'User-Agent: RoscoRadio-GitHub-Release/0.1' \
+            "$SERVER/api/v1/apps/$APP_ID/manifest?channel=$CHANNEL")"
+
+          version="$(jq -r '.version' <<<"$manifest")"
+          package_url="$(jq -r '.package_url' <<<"$manifest")"
+          expected_sha="$(jq -r '.sha256' <<<"$manifest" | tr '[:upper:]' '[:lower:]')"
+
+          if [[ -z "$version" || "$version" == "null" || -z "$package_url" || "$package_url" == "null" || -z "$expected_sha" || "$expected_sha" == "null" ]]; then
+            echo 'NexusUpdater returned an incomplete manifest.' >&2
+            exit 1
+          fi
+          if [[ "$package_url" != https://* ]]; then
+            echo 'Refusing non-HTTPS package URL.' >&2
+            exit 1
+          fi
+
+          if [[ "$CHANNEL" == "beta" ]]; then
+            tag="v${version}-beta"
+            title="Rosco Radio v${version} Beta"
+            asset="RoscoRadio-v${version}-beta.zip"
+            notes="releases/v${version}-beta.md"
+            target="beta"
+            prerelease="true"
+          else
+            tag="v${version}"
+            title="Rosco Radio v${version} Stable"
+            asset="RoscoRadio-v${version}.zip"
+            notes="releases/v${version}.md"
+            target="main"
+            prerelease="false"
+          fi
+
+          curl --fail --show-error --location \
+            -H 'User-Agent: RoscoRadio-GitHub-Release/0.1' \
+            "$package_url" -o "$asset"
+
+          actual_sha="$(sha256sum "$asset" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+          if [[ "$actual_sha" != "$expected_sha" ]]; then
+            echo "SHA-256 mismatch: expected $expected_sha, got $actual_sha" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "sha256=$actual_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.nexus.outputs.tag }}
+          TITLE: ${{ steps.nexus.outputs.title }}
+          ASSET: ${{ steps.nexus.outputs.asset }}
+          NOTES: ${{ steps.nexus.outputs.notes }}
+          TARGET: ${{ steps.nexus.outputs.target }}
+          PRERELEASE: ${{ steps.nexus.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to replace it automatically." >&2
+            exit 1
+          fi
+
+          args=(release create "$TAG" "$ASSET" \
+            "installer/RoscoRadio-Online-Installer.ps1" \
+            "installer/RoscoRadio-Online-Installer.bat" \
+            --target "$TARGET" \
+            --title "$TITLE" \
+            --notes-file "$NOTES")
+
+          if [[ "$PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          else
+            args+=(--latest)
+          fi
+
+          gh "${args[@]}"
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo '### Rosco Radio release published'
+            echo
+            echo "- Tag: \`${{ steps.nexus.outputs.tag }}\`"
+            echo "- Package: \`${{ steps.nexus.outputs.asset }}\`"
+            echo "- SHA-256: \`${{ steps.nexus.outputs.sha256 }}\`"
+            echo "- Channel: \`${{ inputs.channel }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
