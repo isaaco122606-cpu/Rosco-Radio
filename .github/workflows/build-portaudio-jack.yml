@@ -1,0 +1,41 @@
+name: Build PortAudio with JACK for ChatGPT env
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-portaudio-jack.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:13
+    steps:
+      - name: Build JACK-enabled PortAudio
+        shell: bash
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git build-essential cmake pkg-config \
+            libjack-jackd2-dev libasound2-dev
+          git clone --depth 1 https://github.com/PortAudio/portaudio.git /src/portaudio
+          cmake -S /src/portaudio -B /src/portaudio/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPA_USE_JACK=ON \
+            -DPA_USE_ALSA=ON \
+            -DPA_BUILD_SHARED=ON \
+            -DPA_BUILD_STATIC=OFF \
+            -DPA_BUILD_EXAMPLES=OFF \
+            -DPA_BUILD_TESTS=OFF \
+            -DCMAKE_INSTALL_PREFIX=/opt/portaudio-jack
+          cmake --build /src/portaudio/build -j2
+          cmake --install /src/portaudio/build
+          find /opt/portaudio-jack -maxdepth 4 -type f -o -type l
+
+      - name: Upload PortAudio
+        uses: actions/upload-artifact@v4
+        with:
+          name: portaudio-jack-debian13-x86_64
+          path: /opt/portaudio-jack
+          retention-days: 1
