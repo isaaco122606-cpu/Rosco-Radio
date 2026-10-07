@@ -24,7 +24,7 @@ jobs:
             libportaudio2 jackd2
           rm -f lock || true
           rm -rf partial || true
-          python3 -m pip download --only-binary=:all: --dest /work/wheels sounddevice
+          python3 -m pip download --only-binary=:all: --dest /work/wheels sounddevice==0.5.6
           ls -lah /work/debs /work/wheels
 
       - name: Upload bundle
@@ -35,3 +35,5 @@ jobs:
             /work/debs/*.deb
             /work/wheels/*.whl
           retention-days: 1
+
+# sandbox refresh 2026-10-07
