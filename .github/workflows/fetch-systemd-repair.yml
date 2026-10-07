@@ -1,0 +1,30 @@
+name: Fetch Debian 13 systemd repair packages
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-systemd-repair.yml'
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:13
+    steps:
+      - name: Download matching systemd packages
+        shell: bash
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates
+          mkdir -p /work/debs
+          cd /work/debs
+          apt-get download systemd systemd-sysv systemd-timesyncd libsystemd-shared libsystemd0 udev libudev1
+          ls -lah
+
+      - name: Upload repair bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: systemd-repair-debian13-x86_64
+          path: /work/debs/*.deb
+          retention-days: 1
