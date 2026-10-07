@@ -50,12 +50,16 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Set-Location $env:RR_ROOT
-          $patch = Join-Path $env:GITHUB_WORKSPACE 'build\achievements-v0.1.4.patch'
-          git apply --check $patch
-          git apply $patch
-          if (-not (Test-Path '.\achievements.py')) { throw 'achievements.py was not created' }
-          Select-String -Path '.\main.py' -Pattern '_build_achievements_tab' | Write-Host
+          $repoRoot = (Resolve-Path $env:GITHUB_WORKSPACE).Path
+          $rrRoot = (Resolve-Path $env:RR_ROOT).Path
+          $relativeRoot = [System.IO.Path]::GetRelativePath($repoRoot, $rrRoot).Replace('\','/')
+          $patch = Join-Path $repoRoot 'build\achievements-v0.1.4.patch'
+          Set-Location $repoRoot
+          Write-Host "Applying achievements patch into $relativeRoot"
+          git apply --check --directory="$relativeRoot" $patch
+          git apply --directory="$relativeRoot" $patch
+          if (-not (Test-Path (Join-Path $rrRoot 'achievements.py'))) { throw 'achievements.py was not created' }
+          Select-String -Path (Join-Path $rrRoot 'main.py') -Pattern '_build_achievements_tab' | Write-Host
           Write-Host 'Achievements overlay applied.'
 
       - name: Compile-check patched source
