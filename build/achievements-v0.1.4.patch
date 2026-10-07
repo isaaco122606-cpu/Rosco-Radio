@@ -1,0 +1,272 @@
+--- a/main.py
++++ b/main.py
+@@ -39,6 +39,7 @@
+ from ft8_engine import FT8Engine
+ from sstv_engine import SSTVEngine, MODE_NAMES
+ from cw_engine import CWEngine
++from achievements import ACHIEVEMENTS, unlock as achievement_unlock, count_unlocked as achievement_count
+ from morse_tx import build_vox_morse_sequence, play_sequence, synthesize_speech
+ from first_setup import FirstTimeSetup
+ from session_manager import ProfileStore, SessionLogger
+@@ -420,6 +421,7 @@
+         self._build_ft8_tab()
+         self._build_sstv_tab()
+         self._build_cw_tab()
++        self._build_achievements_tab()
+         self._build_satdump_tab()
+         self._build_radio_tab()
+         self._build_time_station_tab()
+@@ -1086,6 +1088,82 @@
+         self.notification_history.clear()
+         self.notification_button.setText("🔔 0")
+ 
++
++    # ---------- Achievements ----------
++    def _achievement_unlock(self, key):
++        try:
++            item = achievement_unlock(self.cfg, key)
++            if not item:
++                return False
++            save_config(self.cfg)
++            self._notify(
++                f"🏆 Achievement unlocked · {item['title']}",
++                item['description'],
++                "success",
++                cooldown_key=f"achievement-{key}",
++                cooldown=1.0,
++            )
++            self._refresh_achievements_page()
++            return True
++        except Exception:
++            return False
++
++    def _build_achievements_tab(self):
++        page = QWidget()
++        self.achievements_page = page
++        layout = QVBoxLayout(page)
++        layout.setContentsMargins(16, 16, 16, 16)
++        layout.setSpacing(10)
++
++        hero = QLabel("ACHIEVEMENTS")
++        hero.setObjectName("hero")
++        layout.addWidget(hero)
++        self.achievement_progress = QLabel("")
++        self.achievement_progress.setObjectName("muted")
++        layout.addWidget(self.achievement_progress)
++
++        self.achievement_list = QScrollArea()
++        self.achievement_list.setWidgetResizable(True)
++        self.achievement_list_host = QWidget()
++        self.achievement_list_layout = QVBoxLayout(self.achievement_list_host)
++        self.achievement_list_layout.setSpacing(8)
++        self.achievement_list.setWidget(self.achievement_list_host)
++        layout.addWidget(self.achievement_list, 1)
++        self.tabs.addTab(page, "Achievements")
++        self._refresh_achievements_page()
++
++    def _refresh_achievements_page(self):
++        if not hasattr(self, "achievement_list_layout"):
++            return
++        while self.achievement_list_layout.count():
++            item = self.achievement_list_layout.takeAt(0)
++            widget = item.widget()
++            if widget:
++                widget.deleteLater()
++        store = self.cfg.get("achievements", {}) if isinstance(self.cfg.get("achievements", {}), dict) else {}
++        unlocked = achievement_count(self.cfg)
++        total = len(ACHIEVEMENTS)
++        self.achievement_progress.setText(f"{unlocked} / {total} unlocked")
++        for key, meta in ACHIEVEMENTS.items():
++            card = QFrame()
++            card.setObjectName("card")
++            row = QVBoxLayout(card)
++            earned = key in store
++            title = QLabel(("🏆 " if earned else "🔒 ") + meta["title"])
++            title.setStyleSheet("font-size:15px;font-weight:800;")
++            desc = QLabel(meta["description"] if earned else "???")
++            desc.setWordWrap(True)
++            desc.setObjectName("muted")
++            row.addWidget(title)
++            row.addWidget(desc)
++            if earned:
++                stamp = QLabel(f"Unlocked · {store[key]}")
++                stamp.setObjectName("muted")
++                row.addWidget(stamp)
++            self.achievement_list_layout.addWidget(card)
++        self.achievement_list_layout.addStretch(1)
++
++
+     # ---------- RR AI ----------
+     def _build_ai_tab(self):
+         page = QWidget()
+@@ -1495,6 +1573,12 @@
+             self._ai_auto_last_output = clean
+             self._ai_auto_last_output_at = now
+ 
++        if origin != "auto":
++            caps_words = re.findall(r"\b[A-Z]{3,}\b", clean)
++            chaos_score = clean.count("!") + clean.count("?!") + clean.count("!?" ) + len(caps_words)
++            if chaos_score >= 8 or len(clean) >= 1800:
++                self._achievement_unlock("ai_freakout")
++
+         badge = "RR AI · AUTO" if origin == "auto" else "RR AI"
+         accent = "#ffd37a" if origin == "auto" else "#7ee8ff"
+         bg = "#17170f" if origin == "auto" else "#0a1a22"
+@@ -1761,6 +1845,8 @@
+             dialog = ChocolateRainDialog(self)
+             self.web.page().setAudioMuted(True)
+             dialog.exec()
++            if getattr(dialog, "completed", False):
++                self._achievement_unlock("chocolate_complete")
+         except Exception as exc:
+             QMessageBox.warning(self, "Chocolate signal unavailable", str(exc))
+         finally:
+@@ -3326,6 +3412,8 @@
+     def _append_cw_text(self, text):
+         if not text:
+             return
++        if re.search(r"[A-Za-z0-9]", str(text)):
++            self._achievement_unlock("cw_contact")
+         cursor = self.cw_log.textCursor()
+         cursor.movePosition(QTextCursor.MoveOperation.End)
+         cursor.insertText(str(text))
+@@ -3438,6 +3526,8 @@
+         self.cw_tx_send.setEnabled(False)
+         self.cw_tx_stop.setEnabled(True)
+         mode_name = "PREVIEW" if preview else "VOX TX"
++        if not preview:
++            self._achievement_unlock("vox_first")
+         self.cw_tx_status.setText(f"{mode_name} · preparing speech + Morse audio…")
+ 
+         wpm = self.cw_tx_wpm.value()
+@@ -4507,6 +4597,8 @@
+             )
+             self.start_audio.setText("Stop microphone")
+             self.audio_status.setText("Microphone active")
++            if (self.backend.currentData() or "vox") == "vox" and self._tx_unlocked():
++                self._achievement_unlock("vox_first")
+         except Exception as exc:
+             QMessageBox.critical(self, "Audio error", str(exc))
+ 
+@@ -4624,6 +4716,8 @@
+ 
+ 
+     def _append_transcript(self, text):
++        if len(re.findall(r"[A-Za-z0-9']+", str(text))) >= 3:
++            self._achievement_unlock("rx_contact")
+         stamp = datetime.now().strftime("%H:%M:%S")
+         self.transcript_view.append(
+             f'<span style="color:#557987">[{stamp}]</span> '
+@@ -4676,6 +4770,7 @@
+         self.utc_detail.setText(detail)
+         self.utc_source.setText(f'DETECTOR CONFIDENCE · {tc.confidence.upper()} · ASR EVENT ONLY')
+         self._notify("UTC announcement", display, "info", cooldown_key="utc-announcement", cooldown=45.0)
++        self._achievement_unlock("utc_tts")
+         self._session_event("UTC", display, {
+             "confidence": tc.confidence, "phrase": tc.phrase,
+             "hour": tc.hour, "minute": tc.minute, "frequency_khz": self.freq.value(),
+@@ -4718,6 +4813,7 @@
+                 cooldown=3.0,
+             )
+         elif band == "cb":
++            self._achievement_unlock("baited")
+             self._notify(
+                 "CB unsupported",
+                 "Rosco Radio currently doesn't support CB radios.",
+@@ -4794,6 +4890,7 @@
+             self.radio.set_ptt(True)
+             self.radio_status.setText(self.radio.status())
+             self.ptt.setText("TRANSMITTING")
++            self._achievement_unlock("serial_ptt_first")
+         except Exception as exc:
+             self.radio_status.setText(str(exc))
+ 
+--- a/chocolate_rain.py
++++ b/chocolate_rain.py
+@@ -133,6 +133,7 @@
+     def __init__(self, parent=None):
+         super().__init__(parent)
+         self.setWindowTitle('Rosco Radio · Unexpected chocolate event')
++        self.completed = False
+         self.resize(1000, 700)
+         self.setWindowModality(Qt.ApplicationModal)
+         data = json.loads((ASSETS/'chocolate_rain_envelope.json').read_text(encoding='utf-8'))
+@@ -192,6 +193,7 @@
+ 
+     def media_status(self, status):
+         if status == QMediaPlayer.EndOfMedia:
++            self.completed = True
+             self.status.setText('Signal terminated. Cause: Chocolate. RR has recovered.')
+             self.timer.stop()
+             self.pause.setEnabled(False)
+--- a/achievements.py
++++ b/achievements.py
+@@ -0,0 +1,68 @@
++from __future__ import annotations
++
++from datetime import datetime, timezone
++
++ACHIEVEMENTS = {
++    "baited": {
++        "title": "Baited",
++        "description": "Tried to use a CB radio with RR when no support will ever go live for it... hehe",
++    },
++    "vox_first": {
++        "title": "Transmitted through VOX for the first time",
++        "description": "Transmission is glory! Transmission is life! YOU SHALL TRANSMIT MORE!!",
++    },
++    "serial_ptt_first": {
++        "title": "Transmitted through serial-PTT for the first time",
++        "description": "Even I can't do that... how did you manage to do that? please tell me😭",
++    },
++    "utc_tts": {
++        "title": "Got a UTC announcement via the TTS decoder",
++        "description": "Honestly amazing. That thing can barely hear the Text of Ulysses read at 0.5x speed!",
++    },
++    "chocolate_complete": {
++        "title": "Watched the whole Chocolate Broadcast",
++        "description": "Torture.",
++    },
++    "rx_contact": {
++        "title": "Received an RX contact for the first time",
++        "description": "Less chance of being lonely!",
++    },
++    "cw_contact": {
++        "title": "Made a first contact with CW/Morse Code",
++        "description": ".. / -... . - / -.-- --- ..- / -.-. .- -. .----. - / . ...- . -. / .-. . .- -.. / - .... .. ... .-.-.- .-.-.- .-.-.-",
++    },
++    "ai_freakout": {
++        "title": "Forced RR AI to freak out",
++        "description": "Ah yes, the art of messing with a 4b params model.",
++    },
++}
++
++
++def ensure_store(cfg):
++    store = cfg.setdefault("achievements", {})
++    if not isinstance(store, dict):
++        store = {}
++        cfg["achievements"] = store
++    return store
++
++
++def unlock(cfg, key):
++    if key not in ACHIEVEMENTS:
++        return None
++    store = ensure_store(cfg)
++    if key in store:
++        return None
++    store[key] = datetime.now(timezone.utc).isoformat(timespec="seconds")
++    item = dict(ACHIEVEMENTS[key])
++    item["key"] = key
++    item["unlocked_at"] = store[key]
++    return item
++
++
++def is_unlocked(cfg, key):
++    return key in ensure_store(cfg)
++
++
++def count_unlocked(cfg):
++    store = ensure_store(cfg)
++    return sum(1 for key in ACHIEVEMENTS if key in store)
