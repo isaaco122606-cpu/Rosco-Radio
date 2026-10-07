@@ -1,0 +1,29 @@
+name: Fetch PySide6 wheels for ChatGPT env
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-pyside6-wheels.yml'
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:13
+    steps:
+      - name: Download PySide6 wheels
+        shell: bash
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends python3 python3-pip ca-certificates
+          mkdir -p /work/wheels
+          python3 -m pip download --only-binary=:all: --dest /work/wheels PySide6==6.11.1
+          ls -lah /work/wheels
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyside6-6.11.1-linux-x86_64
+          path: /work/wheels/*.whl
+          retention-days: 1
