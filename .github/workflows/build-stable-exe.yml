@@ -1,4 +1,4 @@
-name: Build Rosco Radio Stable EXE
+name: Build Rosco Radio v0.1.5 Stable EXE
 
 on:
   workflow_dispatch:
@@ -10,13 +10,18 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 45
+    env:
+      RR_VERSION: '0.1.5'
     steps:
+      - name: Checkout build overlay
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Download current Stable from NexusUpdater
+      - name: Download current Stable base from NexusUpdater
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -27,14 +32,13 @@ jobs:
           $m = Invoke-RestMethod -Uri $manifestUrl -Headers $headers -TimeoutSec 30
           $m | ConvertTo-Json -Depth 8 | Write-Host
           if (-not $m.package_url) { throw 'Manifest has no package_url' }
-          $zip = Join-Path $PWD 'RoscoRadio-Stable.zip'
+          $zip = Join-Path $PWD 'RoscoRadio-Stable-Base.zip'
           Invoke-WebRequest -Uri $m.package_url -Headers $headers -OutFile $zip -TimeoutSec 180
           $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
           $expected = ([string]$m.sha256).ToLowerInvariant()
           Write-Host "Expected SHA256: $expected"
           Write-Host "Actual   SHA256: $actual"
           if ($actual -ne $expected) { throw 'NexusUpdater package checksum mismatch' }
-          "RR_VERSION=$($m.version)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Expand-Archive -Path $zip -DestinationPath "$PWD\rrsrc" -Force
 
       - name: Locate RR source
@@ -45,6 +49,22 @@ jobs:
           $root = $main.Directory.FullName
           Write-Host "RR source root: $root"
           "RR_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Overlay Achievements build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $overlay = Join-Path $env:GITHUB_WORKSPACE 'build\apply_achievements_overlay.py'
+          python $overlay $env:RR_ROOT
+          if (-not (Test-Path "$env:RR_ROOT\achievements.py")) { throw 'achievements.py was not created' }
+          Select-String -Path "$env:RR_ROOT\main.py" -Pattern '_build_achievements_tab' | Write-Host
+          Write-Host 'Achievements overlay applied for v0.1.5 Stable.'
+
+      - name: Compile-check patched source
+        shell: pwsh
+        run: |
+          Set-Location $env:RR_ROOT
+          python -m py_compile main.py achievements.py chocolate_rain.py
 
       - name: Install build dependencies
         shell: pwsh
@@ -69,7 +89,8 @@ jobs:
             '--hidden-import', 'PySide6.QtMultimedia',
             '--hidden-import', 'PySide6.QtMultimediaWidgets',
             '--hidden-import', 'sounddevice',
-            '--hidden-import', 'cffi'
+            '--hidden-import', 'cffi',
+            '--hidden-import', 'achievements'
           )
           if (Test-Path '.\assets') { $args += @('--add-data', 'assets;assets') }
           if (Test-Path '.\runtime') { $args += @('--add-data', 'runtime;runtime') }
@@ -87,11 +108,11 @@ jobs:
           $exe = Get-ChildItem "$env:RR_ROOT\dist\*.exe" | Select-Object -First 1
           if (-not $exe) { throw 'EXE was not produced' }
           Get-FileHash $exe.FullName -Algorithm SHA256 | Format-List
-          Copy-Item $exe.FullName "$PWD\RoscoRadio-Stable.exe"
+          Copy-Item $exe.FullName "$PWD\RoscoRadio-v0.1.5-Stable.exe"
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: RoscoRadio-Stable-Windows-x64
-          path: RoscoRadio-Stable.exe
+          name: RoscoRadio-v0.1.5-Stable-Windows-x64
+          path: RoscoRadio-v0.1.5-Stable.exe
           retention-days: 7
