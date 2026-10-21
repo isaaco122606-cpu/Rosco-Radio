@@ -13,6 +13,14 @@ Use the [online installer](https://github.com/isaaco122606-cpu/Rosco-Radio/relea
 
 NexusUpdater determines the version delivered by the installer. The `rosco-radio` Stable manifest must report `0.1.5` for clients to receive that update.
 
+## Github factory install
+
+The factory distribution starts on Home with an announcement directing users to the current NexusUpdater version under **Updates**. The target version is fetched from the app manifest at startup, rather than hard-coded.
+
+Use the **Build Rosco Radio Github Factory** GitHub Actions workflow to generate the factory ZIP. Extract it and launch `run.bat` (Python 3.12+ required). This workflow generates a build artifact; existing release downloads are unchanged until a factory ZIP is published.
+
+See [factory build and update details](build/FACTORY.md).
+
 ## Online installer
 
 Rosco Radio includes a small **NexusUpdater-powered online installer** under [`installer/`](installer/).

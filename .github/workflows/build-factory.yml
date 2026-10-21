@@ -1,0 +1,50 @@
+name: Build Rosco Radio Github Factory
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  factory:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and verify factory base
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Pin the source base so later NU releases cannot silently alter the factory build.
+          $url = 'https://nexusupdater.duckdns.org/packages/rosco-radio-0.1.6-stable.zip'
+          Invoke-WebRequest -Uri $url -OutFile base.zip -TimeoutSec 180
+          $hash = (Get-FileHash base.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne 'c305b9750e3b0f5ab30de8f9eb9a7ed4ee5454ee731b479a34b85e929e42c48b') {
+            throw 'Factory base checksum mismatch'
+          }
+          Expand-Archive base.zip -DestinationPath base
+      - name: Test and apply factory overlay
+        shell: pwsh
+        run: |
+          python tests/test_factory_overlay.py base/RoscoRadio-v0.1.6
+          if ($LASTEXITCODE -ne 0) { throw 'Factory tests failed' }
+          python build/apply_factory_overlay.py base/RoscoRadio-v0.1.6
+          if ($LASTEXITCODE -ne 0) { throw 'Factory overlay failed' }
+          python -m compileall -q base/RoscoRadio-v0.1.6
+          if ($LASTEXITCODE -ne 0) { throw 'Factory compile check failed' }
+      - name: Package factory install
+        shell: pwsh
+        run: |
+          Rename-Item base/RoscoRadio-v0.1.6 RoscoRadio-Github-Factory
+          Compress-Archive base/RoscoRadio-Github-Factory -DestinationPath RoscoRadio-Github-Factory.zip
+          (Get-FileHash RoscoRadio-Github-Factory.zip -Algorithm SHA256).Hash.ToLowerInvariant() + '  RoscoRadio-Github-Factory.zip' | Set-Content RoscoRadio-Github-Factory.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RoscoRadio-Github-Factory
+          path: |
+            RoscoRadio-Github-Factory.zip
+            RoscoRadio-Github-Factory.zip.sha256
+          retention-days: 30
