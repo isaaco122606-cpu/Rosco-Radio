@@ -6,10 +6,12 @@ Rosco Radio (RR) is a Windows-focused radio workspace that brings WebSDR recepti
 
 ## Current versions
 
-- **Stable:** `v0.1.2`
-- **Beta:** `v0.1.3`
+- **Latest documented Stable version:** [`v0.1.5`](releases/v0.1.5.md), promoting the Achievements build to Stable.
+- **Existing GitHub ZIP releases:** `v0.1.2` Stable and `v0.1.3` Beta.
 
-The Stable build is the recommended version for normal use. The Beta build contains newer features that are still being tested.
+Use the [online installer](https://github.com/isaaco122606-cpu/Rosco-Radio/releases/tag/Installer) to request the current Stable or Beta build from NexusUpdater. Stable is recommended for normal use. Beta is a separate testing channel and is not necessarily newer than Stable.
+
+NexusUpdater determines the version delivered by the installer. The `rosco-radio` Stable manifest must report `0.1.5` for clients to receive that update.
 
 ## Online installer
 
@@ -27,7 +29,15 @@ The installer does not hard-code a Rosco Radio package URL. Instead, it:
 
 Run `RoscoRadio-Online-Installer.bat` normally for **Stable**. Pass `beta` as its first argument to request the **Beta** channel.
 
-## v0.1.2 Stable
+## v0.1.5 Stable
+
+The Achievements build is promoted to Stable, with tracking for RX, CW, VOX, serial PTT, UTC announcements, RR AI chaos, CB bait, and completing the Chocolate Broadcast. This release targets the standalone Windows channel through NexusUpdater.
+
+See the [v0.1.5 release notes](releases/v0.1.5.md) for details.
+
+## Earlier releases
+
+### v0.1.2 Stable
 
 Highlights include:
 
@@ -41,9 +51,9 @@ Highlights include:
 - First Time Setup state is stored per Windows user under `%APPDATA%\RoscoRadio`, preventing another user's previous setup from suppressing onboarding.
 - NexusUpdater support with version comparison, staged installation, backups, and the user's selected storage directory.
 
-## v0.1.3 Beta
+### v0.1.3 Beta
 
-The Beta adds Rosco Radio's native **Satellite** workspace backed by an embedded SatDump processing runtime in packaged builds.
+The v0.1.3 Beta introduced Rosco Radio's native **Satellite** workspace backed by an embedded SatDump processing runtime in packaged builds.
 
 SatDump is GPL-3.0 software and retains its own copyright/license requirements. The Beta distribution includes third-party notices and SatDump integration documentation.
 
