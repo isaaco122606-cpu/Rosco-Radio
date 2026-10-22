@@ -4,7 +4,8 @@ Service will be restored once we have verified that the NexusUpdater server is n
 
 During this outage, update checks and downloads through NexusUpdater in any Nexus/Rosco app may be unavailable.
 
-
+As a result, the Online Installer **WILL NOT WORK.** Please download the `.zip` file instead.
+When NexusUpdater comes back online, you will receive a notification.
 
 
 # Rosco Radio
