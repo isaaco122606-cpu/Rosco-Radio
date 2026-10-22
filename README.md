@@ -1,3 +1,8 @@
+# NOTE: Due to the ongoing PHP attacks, NexusUpdater, the updater used to update RoscoRadio, RoscoRadioOS, and Nexus apps, will be offline, effective 10/22/26, downtime ending when we have verified that the server isn't vulnerable and will be restored. 
+
+
+
+
 # Rosco Radio
 
 **The long-awaited solution to the endless pile of separate radio apps.**
