@@ -1,4 +1,8 @@
-# NOTE: Due to the ongoing PHP attacks, NexusUpdater, the updater used to update RoscoRadio, RoscoRadioOS, and Nexus apps, will be offline, effective 10/22/26, downtime ending when we have verified that the server isn't vulnerable and will be restored. 
+# NOTE: Due to the ongoing PHP security attacks, NexusUpdater — the update service used by RoscoRadio, RoscoRadioOS, and other Nexus applications — will be temporarily offline effective October 22, 2026.
+
+Service will be restored once we have verified that the NexusUpdater server is not vulnerable and is safe to bring back online.
+
+During this outage, update checks and downloads through NexusUpdater in any Nexus/Rosco app may be unavailable.
 
 
 
