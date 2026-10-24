@@ -1,4 +1,10 @@
-## NOTE: NexusUpdater was down due to the issues relating to PHP. We have verified that our Dynamic DNS service for NexusUpdater has been updated to the latest PHP version that patches the vulnerabilities. The online installer has been restored, and all functions of NexusUpdater have also been restored. 
+## NOTE: NexusUpdater service has been restored
+
+NexusUpdater was temporarily taken offline due to concerns surrounding the recent PHP vulnerabilities.
+
+AWS has confirmed that its managed services are not impacted and has deployed the relevant PHP security updates across affected AWS-managed environments. We have also verified that the NexusUpdater host itself is not running a vulnerable PHP runtime.
+
+The online installer and all NexusUpdater services have now been restored.
 
 
 # Rosco Radio
