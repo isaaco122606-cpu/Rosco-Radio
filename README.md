@@ -1,4 +1,4 @@
-# NOTE: NexusUpdater was down due to the issues relating to PHP. We have verified that our Dynamic DNS service for NexusUpdater has been updated to the latest PHP version that patches the vulnerabilities. The online installer has been restored, and all functions of NexusUpdater have also been restored. 
+## NOTE: NexusUpdater was down due to the issues relating to PHP. We have verified that our Dynamic DNS service for NexusUpdater has been updated to the latest PHP version that patches the vulnerabilities. The online installer has been restored, and all functions of NexusUpdater have also been restored. 
 
 
 # Rosco Radio
